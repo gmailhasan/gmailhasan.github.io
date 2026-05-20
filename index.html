@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sammamish, WA · Time &amp; Weather</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      background: #0d1b2a;
+    }
+
+    /* ── Background cross-fade layers ── */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 3s ease-in-out;
+      z-index: 0;
+    }
+    .bg-layer.visible { opacity: 1; }
+
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(
+        160deg,
+        rgba(0,0,0,0.25) 0%,
+        rgba(0,0,0,0.50) 100%
+      );
+      z-index: 1;
+    }
+
+    /* ── Glassmorphism card ── */
+    .card {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.13);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 28px;
+      padding: 44px 52px;
+      max-width: 580px;
+      width: 92%;
+      color: #fff;
+      text-align: center;
+      box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+
+    /* ── Location ── */
+    .location {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 6px;
+    }
+
+    /* ── Date & Time ── */
+    .date-line {
+      font-size: 1.05rem;
+      opacity: 0.88;
+      margin-bottom: 2px;
+    }
+    .time-line {
+      font-size: 4.8rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -3px;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.35);
+      margin: 6px 0 4px;
+    }
+    .tz-line {
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      opacity: 0.55;
+      margin-bottom: 32px;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.18);
+      margin: 0 -4px 32px;
+    }
+
+    /* ── Weather icon ── */
+    .weather-icon {
+      font-size: 5.5rem;
+      line-height: 1;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.35));
+    }
+    .weather-desc {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      margin-bottom: 24px;
+      opacity: 0.95;
+    }
+
+    /* ── Temperature row ── */
+    .temp-row {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      gap: 0;
+      margin-bottom: 28px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .temp-block {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 12px;
+    }
+    .temp-block + .temp-block {
+      border-left: 1px solid rgba(255,255,255,0.15);
+    }
+    .temp-value {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+    .temp-unit {
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-top: 6px;
+    }
+
+    /* ── Details row ── */
+    .details-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .detail-chip {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .detail-icon { font-size: 1.2rem; }
+    .detail-value { font-size: 0.88rem; font-weight: 600; }
+    .detail-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.55;
+    }
+
+    /* ── Status footer ── */
+    .status {
+      margin-top: 24px;
+      font-size: 0.68rem;
+      opacity: 0.45;
+      letter-spacing: 0.07em;
+    }
+
+    /* ── Background label (bottom-right) ── */
+    .bg-label {
+      position: fixed;
+      bottom: 14px;
+      right: 18px;
+      z-index: 3;
+      color: rgba(255,255,255,0.45);
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      font-family: 'Segoe UI', sans-serif;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      transition: opacity 1s;
+    }
+
+    /* ── Loading pulse ── */
+    @keyframes pulse {
+      0%, 100% { opacity: 0.9; }
+      50%       { opacity: 0.35; }
+    }
+    .loading { animation: pulse 1.6s ease-in-out infinite; }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .card { padding: 32px 20px; }
+      .time-line { font-size: 3.6rem; letter-spacing: -2px; }
+      .temp-value { font-size: 2.4rem; }
+      .weather-icon { font-size: 4rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- A/B crossfade background layers -->
+  <div class="bg-layer" id="bg-a"></div>
+  <div class="bg-layer" id="bg-b"></div>
+  <div class="bg-overlay"></div>
+
+  <div class="card">
+    <div class="location">📍 Sammamish, Washington</div>
+
+    <div class="date-line" id="date-line">—</div>
+    <div class="time-line loading" id="time-line">--:--:-- --</div>
+    <div class="tz-line">Pacific Time (America / Los_Angeles)</div>
+
+    <div class="divider"></div>
+
+    <div class="weather-icon" id="weather-icon">⏳</div>
+    <div class="weather-desc" id="weather-desc">Fetching weather…</div>
+
+    <div class="temp-row">
+      <div class="temp-block">
+        <div class="temp-value" id="temp-c">--°</div>
+        <div class="temp-unit">Celsius</div>
+      </div>
+      <div class="temp-block">
+        <div class="temp-value" id="temp-f">--°</div>
+        <div class="temp-unit">Fahrenheit</div>
+      </div>
+    </div>
+
+    <div class="details-row">
+      <div class="detail-chip">
+        <div class="detail-icon">💧</div>
+        <div class="detail-value" id="humidity">--%</div>
+        <div class="detail-label">Humidity</div>
+      </div>
+      <div class="detail-chip">
+        <div class="detail-icon">💨</div>
+        <div class="detail-value" id="wind">-- mph</div>
+        <div class="detail-label">Wind</div>
+      </div>
+      <div class="detail-chip">
+        <div class="detail-icon">🌡️</div>
+        <div class="detail-value" id="feels-like">--</div>
+        <div class="detail-label">Feels Like</div>
+      </div>
+    </div>
+
+    <div class="status" id="status">Connecting…</div>
+  </div>
+
+  <div class="bg-label" id="bg-label"></div>
+
+  <script>
+    /* ══════════════════════════════════════════
+       BACKGROUND CYCLING  (every 5 minutes)
+    ══════════════════════════════════════════ */
+    const BG_LIST = [
+      { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80', label: '🌲 Temperate Forest' },
+      { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80', label: '⛰️ Mountain Vista' },
+      { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80', label: '🏖️ Sandy Beach' },
+      { url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1920&q=80', label: '🌼 Wildflower Meadow' },
+      { url: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920&q=80', label: '🌅 Mountain Sunrise' },
+      { url: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=1920&q=80', label: '❄️ Winter Forest' },
+      { url: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1920&q=80', label: '🌊 Coastal Cliffs' },
+      { url: 'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1920&q=80', label: '🌸 Blossom Valley' },
+      { url: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1920&q=80', label: '🏕️ Lake Reflection' },
+      { url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80', label: '🗻 Rocky Peaks' },
+    ];
+
+    let bgIndex = Math.floor(Math.random() * BG_LIST.length); // start random
+    let useA    = true;
+    const bgA   = document.getElementById('bg-a');
+    const bgB   = document.getElementById('bg-b');
+    const bgLbl = document.getElementById('bg-label');
+
+    function showBackground(idx) {
+      const item  = BG_LIST[idx % BG_LIST.length];
+      const next  = useA ? bgA : bgB;
+      const prev  = useA ? bgB : bgA;
+      next.style.backgroundImage = `url('${item.url}')`;
+      // Allow image to start loading, then fade in
+      next.classList.add('visible');
+      prev.classList.remove('visible');
+      bgLbl.textContent = item.label;
+      useA = !useA;
+    }
+
+    showBackground(bgIndex);
+    setInterval(() => {
+      bgIndex = (bgIndex + 1) % BG_LIST.length;
+      showBackground(bgIndex);
+    }, 5 * 60 * 1000); // 5 minutes
+
+
+    /* ══════════════════════════════════════════
+       DATE & TIME  — WorldTimeAPI (no key)
+       Endpoint: worldtimeapi.org/api/timezone/America/Los_Angeles
+    ══════════════════════════════════════════ */
+    const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+
+    let serverMs    = null;   // UTC ms at time of API response
+    let fetchedAt   = null;   // local Date.now() when we got it
+    let usingBrowser = false; // true when falling back to browser clock
+    let clockTick   = null;
+
+    // Start the clock right away using browser time (PST via Intl) so
+    // the display is never blank while the API fetch is in-flight.
+    function startBrowserClock() {
+      usingBrowser = true;
+      document.getElementById('time-line').classList.remove('loading');
+      if (!clockTick) { clockTick = setInterval(tickClock, 1000); }
+      tickClock();
+    }
+
+    async function fetchTime() {
+      try {
+        const res  = await fetch('https://worldtimeapi.org/api/timezone/America/Los_Angeles');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        serverMs     = data.unixtime * 1000;   // seconds → ms
+        fetchedAt    = Date.now();
+        usingBrowser = false;
+        document.getElementById('time-line').classList.remove('loading');
+        if (!clockTick) { clockTick = setInterval(tickClock, 1000); }
+        tickClock();
+      } catch (err) {
+        console.warn('WorldTimeAPI unavailable, falling back to browser time:', err);
+        // Only start browser clock if we don't already have server time
+        if (serverMs === null) { startBrowserClock(); }
+        setTimeout(fetchTime, 30_000);            // retry in 30 s
+      }
+    }
+
+    function tickClock() {
+      let now;
+      if (serverMs !== null) {
+        // Use server-anchored time (most accurate)
+        now = new Date(serverMs + (Date.now() - fetchedAt));
+      } else {
+        // Fallback: browser clock interpreted as PST/PDT via Intl
+        const pstString = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+        now = new Date(pstString);
+      }
+      const day  = DAYS[now.getDay()];
+      const mon  = MONTHS[now.getMonth()];
+      const dt   = now.getDate();
+      const yr   = now.getFullYear();
+      let   h    = now.getHours();
+      const m    = String(now.getMinutes()).padStart(2, '0');
+      const s    = String(now.getSeconds()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+
+      document.getElementById('date-line').textContent = `${day}, ${mon} ${dt}, ${yr}`;
+      document.getElementById('time-line').textContent = `${h}:${m}:${s} ${ampm}`;
+    }
+
+    // Show browser time immediately, then sync from API
+    startBrowserClock();
+    fetchTime();
+    // Re-sync every 10 minutes to prevent drift
+    setInterval(fetchTime, 10 * 60 * 1000);
+
+
+    /* ══════════════════════════════════════════
+       WEATHER  — Open-Meteo (free, no API key)
+       Sammamish, WA: 47.6162° N, 122.0356° W
+    ══════════════════════════════════════════ */
+    const WMO = {
+        0: { label: 'Clear Sky',             icon: '☀️' },
+        1: { label: 'Mainly Clear',          icon: '🌤️' },
+        2: { label: 'Partly Cloudy',         icon: '⛅' },
+        3: { label: 'Overcast',              icon: '☁️' },
+       45: { label: 'Foggy',                 icon: '🌫️' },
+       48: { label: 'Icy Fog',               icon: '🌫️' },
+       51: { label: 'Light Drizzle',         icon: '🌦️' },
+       53: { label: 'Moderate Drizzle',      icon: '🌦️' },
+       55: { label: 'Heavy Drizzle',         icon: '🌧️' },
+       56: { label: 'Light Freezing Drizzle',icon: '🌧️' },
+       57: { label: 'Heavy Freezing Drizzle',icon: '🌧️' },
+       61: { label: 'Light Rain',            icon: '🌧️' },
+       63: { label: 'Moderate Rain',         icon: '🌧️' },
+       65: { label: 'Heavy Rain',            icon: '🌧️' },
+       66: { label: 'Light Freezing Rain',   icon: '🌨️' },
+       67: { label: 'Heavy Freezing Rain',   icon: '🌨️' },
+       71: { label: 'Light Snow',            icon: '🌨️' },
+       73: { label: 'Moderate Snow',         icon: '❄️' },
+       75: { label: 'Heavy Snow',            icon: '❄️' },
+       77: { label: 'Snow Grains',           icon: '🌨️' },
+       80: { label: 'Light Rain Showers',    icon: '🌦️' },
+       81: { label: 'Rain Showers',          icon: '🌧️' },
+       82: { label: 'Violent Rain Showers',  icon: '⛈️' },
+       85: { label: 'Snow Showers',          icon: '🌨️' },
+       86: { label: 'Heavy Snow Showers',    icon: '❄️' },
+       95: { label: 'Thunderstorm',          icon: '⛈️' },
+       96: { label: 'Thunderstorm + Hail',   icon: '⛈️' },
+       99: { label: 'Thunderstorm + Hail',   icon: '⛈️' },
+    };
+
+    async function fetchWeather() {
+      const url =
+        'https://api.open-meteo.com/v1/forecast' +
+        '?latitude=47.6162&longitude=-122.0356' +
+        '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m' +
+        '&temperature_unit=celsius' +
+        '&wind_speed_unit=mph' +
+        '&timezone=America%2FLos_Angeles';
+      try {
+        const res  = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const cur  = data.current;
+
+        const tempC   = Math.round(cur.temperature_2m);
+        const tempF   = Math.round(tempC * 9 / 5 + 32);
+        const feelsC  = Math.round(cur.apparent_temperature);
+        const feelsF  = Math.round(feelsC * 9 / 5 + 32);
+        const code    = cur.weather_code;
+        const weather = WMO[code] ?? { label: 'Unknown', icon: '🌡️' };
+
+        document.getElementById('weather-icon').textContent = weather.icon;
+        document.getElementById('weather-desc').textContent = weather.label;
+        document.getElementById('temp-c').textContent       = `${tempC}°`;
+        document.getElementById('temp-f').textContent       = `${tempF}°`;
+        document.getElementById('humidity').textContent     = `${cur.relative_humidity_2m}%`;
+        document.getElementById('wind').textContent         = `${Math.round(cur.wind_speed_10m)} mph`;
+        document.getElementById('feels-like').textContent   = `${feelsC}°C / ${feelsF}°F`;
+
+        const updatedAt = new Date().toLocaleTimeString('en-US', {
+          timeZone: 'America/Los_Angeles',
+          hour: '2-digit', minute: '2-digit'
+        });
+        document.getElementById('status').textContent =
+          `Weather last updated · ${updatedAt} PST`;
+
+      } catch (err) {
+        console.warn('Weather API error:', err);
+        document.getElementById('weather-desc').textContent = 'Weather unavailable';
+        document.getElementById('status').textContent = 'Weather fetch failed — will retry';
+      }
+    }
+
+    fetchWeather();
+    setInterval(fetchWeather, 15 * 60 * 1000); // refresh every 15 min
+  </script>
+</body>
+</html>
