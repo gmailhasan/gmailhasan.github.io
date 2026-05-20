@@ -439,7 +439,7 @@
       var ampm = h >= 12 ? 'PM' : 'AM';
       h = h % 12 || 12;
       setText('date-line', DAYS[wd] + ', ' + MONTHS[mo] + ' ' + dt + ', ' + yr);
-      setText('t-h',  String(h));
+      setText('t-h',  pad2(h));
       setText('t-m',  pad2(mi));
       setText('t-s',  pad2(s));
       setText('t-ap', ampm);
