@@ -3,438 +3,489 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sammamish, WA · Time &amp; Weather</title>
+  <title>Sammamish, WA - Time &amp; Weather</title>
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      width: 100vw;
-      height: 100vh;
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
       overflow: hidden;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
       background: #0d1b2a;
     }
+    * { -webkit-box-sizing: border-box; box-sizing: border-box; }
 
-    /* ── Background cross-fade layers ── */
+    /* ── Background layers ── */
     .bg-layer {
       position: fixed;
-      inset: 0;
+      top: 0; right: 0; bottom: 0; left: 0;
+      -webkit-background-size: cover;
       background-size: cover;
-      background-position: center;
+      background-position: center center;
       opacity: 0;
+      -webkit-transition: opacity 3s ease-in-out;
+      -moz-transition: opacity 3s ease-in-out;
       transition: opacity 3s ease-in-out;
       z-index: 0;
     }
     .bg-layer.visible { opacity: 1; }
 
-    /* Dark vignette — heavier bottom-right so text pops */
     .bg-overlay {
       position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 70% 70% at 100% 100%,
-          rgba(0,0,0,0.72) 0%,
-          rgba(0,0,0,0.15) 100%);
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: -webkit-linear-gradient(top left, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.78) 100%);
+      background: linear-gradient(to bottom right, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.78) 100%);
       z-index: 1;
     }
 
-    /* ── Chromecast-style corner widget ── */
+    /* ── Corner widget ── */
     .widget {
       position: fixed;
       bottom: 48px;
       right: 52px;
       z-index: 2;
-      color: #fff;
+      color: #ffffff;
       text-align: right;
-      /* subtle text shadow on everything */
-      text-shadow:
-        0 1px 6px rgba(0,0,0,0.6),
-        0 2px 24px rgba(0,0,0,0.4);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.65), 0 2px 20px rgba(0,0,0,0.45);
     }
 
-    /* ── Weather block (sits above the clock) ── */
+    /* ── Weather row ── */
     .w-top {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
       display: flex;
+      -webkit-box-align: center;
+      -webkit-align-items: center;
+      -ms-flex-align: center;
       align-items: center;
+      -webkit-box-pack: end;
+      -webkit-justify-content: flex-end;
+      -ms-flex-pack: end;
       justify-content: flex-end;
-      gap: 10px;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
     .w-icon {
-      font-size: 2.6rem;
+      font-size: 2.6em;
       line-height: 1;
-      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+      margin-left: 12px;
     }
     .w-temps {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
       display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      -ms-flex-direction: column;
       flex-direction: column;
+      -webkit-box-align: end;
+      -webkit-align-items: flex-end;
+      -ms-flex-align: end;
       align-items: flex-end;
-      gap: 0;
     }
     .w-temp-main {
-      font-size: 2.2rem;
+      font-size: 2.2em;
       font-weight: 700;
-      line-height: 1;
-      letter-spacing: -0.5px;
+      line-height: 1.1;
     }
     .w-temp-sub {
-      font-size: 1rem;
+      font-size: 1.05em;
       font-weight: 400;
-      opacity: 0.75;
-      line-height: 1.2;
+      opacity: 0.72;
+      line-height: 1.3;
     }
-
     .w-desc {
-      font-size: 0.92rem;
+      font-size: 0.95em;
       font-weight: 500;
-      opacity: 0.85;
-      letter-spacing: 0.04em;
-      margin-bottom: 8px;
+      opacity: 0.88;
+      margin-bottom: 6px;
     }
-
     .w-meta {
-      font-size: 0.78rem;
-      opacity: 0.65;
-      letter-spacing: 0.04em;
+      font-size: 0.82em;
+      opacity: 0.68;
       margin-bottom: 20px;
     }
-    .w-meta span { margin-left: 12px; }
-    .w-meta span:first-child { margin-left: 0; }
+    .w-meta-sep { margin: 0 8px; opacity: 0.4; }
 
-    /* ── Thin rule ── */
+    /* ── Divider ── */
     .rule {
-      width: 100%;
       height: 1px;
-      background: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.28);
       margin-bottom: 16px;
     }
 
     /* ── Clock ── */
     .time-line {
-      font-size: 5.2rem;
+      font-size: 5.2em;
       font-weight: 800;
       line-height: 1;
-      letter-spacing: 0;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
       display: flex;
-      align-items: baseline;
+      -webkit-box-pack: end;
+      -webkit-justify-content: flex-end;
+      -ms-flex-pack: end;
       justify-content: flex-end;
-      gap: 0;
-      font-variant-numeric: tabular-nums;
+      -webkit-box-align: baseline;
+      -webkit-align-items: baseline;
+      -ms-flex-align: baseline;
+      align-items: baseline;
     }
-    /* Each digit group has a fixed width so changing digits never shift neighbours */
+    /* Fixed-width segments — digit changes never shift neighbours */
     .t-seg {
       display: inline-block;
+      width: 1.35em;
       text-align: center;
-      min-width: 2ch;
-    }
-    .t-seg.ampm {
-      min-width: 2ch;
-      font-size: 1.6rem;
-      font-weight: 600;
-      align-self: flex-end;
-      padding-bottom: 0.18em;
-      margin-left: 8px;
-      opacity: 0.85;
     }
     .t-colon {
-      padding: 0 2px;
-      opacity: 0.55;
+      display: inline-block;
+      width: 0.28em;
+      text-align: center;
+      opacity: 0.45;
+      position: relative;
+      top: -0.04em;
+    }
+    .t-ap {
+      display: inline-block;
+      font-size: 0.3em;
+      font-weight: 600;
+      -webkit-align-self: flex-end;
+      align-self: flex-end;
+      margin-left: 6px;
+      margin-bottom: 0.55em;
+      opacity: 0.82;
+      min-width: 2.2em;
+      text-align: left;
     }
     .date-line {
-      font-size: 1.15rem;
+      font-size: 1.15em;
       font-weight: 400;
       opacity: 0.88;
       margin-top: 6px;
-      letter-spacing: 0.01em;
     }
     .location-line {
-      font-size: 0.72rem;
+      font-size: 0.72em;
       font-weight: 600;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      opacity: 0.5;
-      margin-top: 6px;
+      opacity: 0.48;
+      margin-top: 5px;
     }
 
-    /* ── Status (tiny, bottom-left) ── */
+    /* ── Status & bg-label ── */
     .status {
       position: fixed;
-      bottom: 16px;
+      bottom: 14px;
       left: 20px;
       z-index: 2;
-      color: rgba(255,255,255,0.35);
-      font-size: 0.65rem;
-      letter-spacing: 0.07em;
+      color: rgba(255,255,255,0.32);
+      font-size: 0.65em;
+      letter-spacing: 0.06em;
+      font-family: Arial, sans-serif;
       text-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
-
-    /* ── Background scene label (bottom-left, above status) ── */
     .bg-label {
       position: fixed;
-      bottom: 34px;
+      bottom: 32px;
       left: 20px;
       z-index: 2;
-      color: rgba(255,255,255,0.42);
-      font-size: 0.68rem;
-      letter-spacing: 0.09em;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.68em;
+      letter-spacing: 0.08em;
+      font-family: Arial, sans-serif;
       text-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
 
     /* ── Loading pulse ── */
-    @keyframes pulse {
-      0%, 100% { opacity: 0.9; }
-      50%       { opacity: 0.3; }
+    @-webkit-keyframes pulse {
+      0%, 100% { opacity: 0.85; }
+      50%       { opacity: 0.28; }
     }
-    .loading { animation: pulse 1.6s ease-in-out infinite; }
-
-    /* ── Responsive ── */
-    @media (max-width: 600px) {
-      .widget { bottom: 28px; right: 24px; }
-      .time-line { font-size: 3.8rem; }
-      .t-seg.ampm { font-size: 1.2rem; }
-      .w-icon { font-size: 2rem; }
-      .w-temp-main { font-size: 1.7rem; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.85; }
+      50%       { opacity: 0.28; }
+    }
+    .loading {
+      -webkit-animation: pulse 1.6s ease-in-out infinite;
+      animation: pulse 1.6s ease-in-out infinite;
     }
   </style>
 </head>
 <body>
 
-  <!-- A/B crossfade background layers -->
   <div class="bg-layer" id="bg-a"></div>
   <div class="bg-layer" id="bg-b"></div>
   <div class="bg-overlay"></div>
 
-  <!-- Chromecast-style corner widget -->
   <div class="widget">
     <!-- Weather -->
     <div class="w-top">
-      <div class="w-icon" id="weather-icon">⏳</div>
+      <div class="w-icon" id="weather-icon">...</div>
       <div class="w-temps">
-        <div class="w-temp-main">
-          <span id="temp-c">--°C</span>
-        </div>
-        <div class="w-temp-sub">
-          <span id="temp-f">--°F</span>
-        </div>
+        <div class="w-temp-main" id="temp-c">-- C</div>
+        <div class="w-temp-sub"  id="temp-f">-- F</div>
       </div>
     </div>
-    <div class="w-desc" id="weather-desc">Fetching weather…</div>
+    <div class="w-desc" id="weather-desc">Fetching weather...</div>
     <div class="w-meta">
-      <span>💧 <span id="humidity">--%</span></span>
-      <span>💨 <span id="wind">-- mph</span></span>
-      <span>🌡️ <span id="feels-like">--</span></span>
+      Humidity: <span id="humidity">--</span>%
+      <span class="w-meta-sep">|</span>
+      Wind: <span id="wind">--</span> mph
+      <span class="w-meta-sep">|</span>
+      Feels: <span id="feels-like">--</span>
     </div>
 
     <div class="rule"></div>
 
-    <!-- Clock -->
-    <div class="time-line loading" id="time-line">
-      <span class="t-seg" id="t-h">--</span><span class="t-colon">:</span><span class="t-seg" id="t-m">--</span><span class="t-colon">:</span><span class="t-seg" id="t-s">--</span><span class="t-seg ampm" id="t-ap">--</span>
-    </div>
-    <div class="date-line" id="date-line">—</div>
-    <div class="location-line">📍 Sammamish, WA · Pacific Time</div>
+    <!-- Clock — each segment is a fixed-width span -->
+    <div class="time-line loading" id="time-line"><span class="t-seg" id="t-h">--</span><span class="t-colon">:</span><span class="t-seg" id="t-m">--</span><span class="t-colon">:</span><span class="t-seg" id="t-s">--</span><span class="t-ap" id="t-ap">--</span></div>
+    <div class="date-line"    id="date-line">-</div>
+    <div class="location-line">Sammamish, WA &mdash; Pacific Time</div>
   </div>
 
   <div class="bg-label" id="bg-label"></div>
-  <div class="status" id="status">Connecting…</div>
+  <div class="status"   id="status">Connecting...</div>
 
   <script>
-    /* ══════════════════════════════════════════
-       BACKGROUND CYCLING  (every 5 minutes)
-    ══════════════════════════════════════════ */
-    const BG_LIST = [
-      { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80', label: '🌲 Temperate Forest' },
-      { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80', label: '⛰️ Mountain Vista' },
-      { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80', label: '🏖️ Sandy Beach' },
-      { url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1920&q=80', label: '🌼 Wildflower Meadow' },
-      { url: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920&q=80', label: '🌅 Mountain Sunrise' },
-      { url: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=1920&q=80', label: '❄️ Winter Forest' },
-      { url: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1920&q=80', label: '🌊 Coastal Cliffs' },
-      { url: 'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1920&q=80', label: '🌸 Blossom Valley' },
-      { url: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1920&q=80', label: '🏕️ Lake Reflection' },
-      { url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80', label: '🗻 Rocky Peaks' },
-    ];
+    /* ─────────────────────────────────────────────
+       All code is ES5-compatible:
+       - var instead of const/let
+       - function() instead of arrow functions
+       - XMLHttpRequest instead of fetch
+       - string concatenation instead of template literals
+       - no async/await, no ??, no padStart, no numeric separators
+    ───────────────────────────────────────────── */
 
-    let bgIndex = Math.floor(Math.random() * BG_LIST.length); // start random
-    let useA    = true;
-    const bgA   = document.getElementById('bg-a');
-    const bgB   = document.getElementById('bg-b');
-    const bgLbl = document.getElementById('bg-label');
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
-    function showBackground(idx) {
-      const item  = BG_LIST[idx % BG_LIST.length];
-      const next  = useA ? bgA : bgB;
-      const prev  = useA ? bgB : bgA;
-      next.style.backgroundImage = `url('${item.url}')`;
-      // Allow image to start loading, then fade in
-      next.classList.add('visible');
-      prev.classList.remove('visible');
-      bgLbl.textContent = item.label;
-      useA = !useA;
+    function setText(id, val) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (typeof el.textContent !== 'undefined') { el.textContent = val; }
+      else { el.innerText = val; }
     }
 
-    showBackground(bgIndex);
-    setInterval(() => {
+    function addCls(el, cls) {
+      if ((' ' + el.className + ' ').indexOf(' ' + cls + ' ') < 0) {
+        el.className = (el.className + ' ' + cls).replace(/^\s+|\s+$/g, '');
+      }
+    }
+    function remCls(el, cls) {
+      el.className = (' ' + el.className + ' ')
+        .replace(new RegExp(' ' + cls + ' ', 'g'), ' ')
+        .replace(/^\s+|\s+$/g, '');
+    }
+
+    function xhrGet(url, onOk, onErr) {
+      var xhr;
+      try { xhr = new XMLHttpRequest(); } catch(e) { onErr(e); return; }
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status === 200) {
+          try { onOk(JSON.parse(xhr.responseText)); }
+          catch(e) { onErr(e); }
+        } else {
+          onErr(new Error('HTTP ' + xhr.status));
+        }
+      };
+      try { xhr.open('GET', url, true); xhr.send(); }
+      catch(e) { onErr(e); }
+    }
+
+
+    /* ════════════════════════════════════════════
+       BACKGROUND — cycles every 5 minutes
+    ════════════════════════════════════════════ */
+    var BG_LIST = [
+      { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80', label: 'Temperate Forest' },
+      { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80', label: 'Mountain Vista' },
+      { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80', label: 'Sandy Beach' },
+      { url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1920&q=80', label: 'Wildflower Meadow' },
+      { url: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920&q=80', label: 'Mountain Sunrise' },
+      { url: 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=1920&q=80', label: 'Winter Forest' },
+      { url: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1920&q=80', label: 'Coastal Cliffs' },
+      { url: 'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1920&q=80', label: 'Blossom Valley' },
+      { url: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1920&q=80', label: 'Lake Reflection' },
+      { url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80', label: 'Rocky Peaks' }
+    ];
+
+    var bgIndex = Math.floor(Math.random() * BG_LIST.length);
+    var bgUseA  = true;
+    var bgElA   = document.getElementById('bg-a');
+    var bgElB   = document.getElementById('bg-b');
+
+    function showBg(idx) {
+      var item = BG_LIST[idx % BG_LIST.length];
+      var next = bgUseA ? bgElA : bgElB;
+      var prev = bgUseA ? bgElB : bgElA;
+      next.style.backgroundImage = "url('" + item.url + "')";
+      addCls(next, 'visible');
+      remCls(prev, 'visible');
+      setText('bg-label', item.label);
+      bgUseA = !bgUseA;
+    }
+
+    showBg(bgIndex);
+    setInterval(function() {
       bgIndex = (bgIndex + 1) % BG_LIST.length;
-      showBackground(bgIndex);
-    }, 5 * 60 * 1000); // 5 minutes
+      showBg(bgIndex);
+    }, 300000);
 
 
-    /* ══════════════════════════════════════════
-       DATE & TIME  — WorldTimeAPI (no key)
-       Endpoint: worldtimeapi.org/api/timezone/America/Los_Angeles
-    ══════════════════════════════════════════ */
-    const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const MONTHS = ['January','February','March','April','May','June',
-                    'July','August','September','October','November','December'];
+    /* ════════════════════════════════════════════
+       CLOCK — WorldTimeAPI, falls back to browser
+    ════════════════════════════════════════════ */
+    var DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
 
-    let serverMs    = null;   // UTC ms at time of API response
-    let fetchedAt   = null;   // local Date.now() when we got it
-    let usingBrowser = false; // true when falling back to browser clock
-    let clockTick   = null;
+    var serverMs  = null;
+    var fetchedAt = null;
+    var clockTick = null;
 
-    // Start the clock right away using browser time (PST via Intl) so
-    // the display is never blank while the API fetch is in-flight.
+    function tickClock() {
+      var now;
+      if (serverMs !== null) {
+        now = new Date(serverMs + ((new Date()).getTime() - fetchedAt));
+      } else {
+        /* Intl timezone fallback — wrap in try/catch for very old engines */
+        try {
+          var pst = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+          var d   = new Date(pst);
+          now = isNaN(d.getTime()) ? new Date() : d;
+        } catch(e) {
+          now = new Date();
+        }
+      }
+
+      var h    = now.getHours();
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+
+      setText('date-line', DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear());
+      setText('t-h',  String(h));
+      setText('t-m',  pad2(now.getMinutes()));
+      setText('t-s',  pad2(now.getSeconds()));
+      setText('t-ap', ampm);
+    }
+
     function startBrowserClock() {
-      usingBrowser = true;
-      document.getElementById('time-line').classList.remove('loading');
+      remCls(document.getElementById('time-line'), 'loading');
       if (!clockTick) { clockTick = setInterval(tickClock, 1000); }
       tickClock();
     }
 
-    async function fetchTime() {
-      try {
-        const res  = await fetch('https://worldtimeapi.org/api/timezone/America/Los_Angeles');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        serverMs     = data.unixtime * 1000;   // seconds → ms
-        fetchedAt    = Date.now();
-        usingBrowser = false;
-        document.getElementById('time-line').classList.remove('loading');
-        if (!clockTick) { clockTick = setInterval(tickClock, 1000); }
-        tickClock();
-      } catch (err) {
-        console.warn('WorldTimeAPI unavailable, falling back to browser time:', err);
-        // Only start browser clock if we don't already have server time
-        if (serverMs === null) { startBrowserClock(); }
-        setTimeout(fetchTime, 30_000);            // retry in 30 s
-      }
+    function fetchTime() {
+      xhrGet(
+        'https://worldtimeapi.org/api/timezone/America/Los_Angeles',
+        function(data) {
+          serverMs  = data.unixtime * 1000;
+          fetchedAt = (new Date()).getTime();
+          remCls(document.getElementById('time-line'), 'loading');
+          if (!clockTick) { clockTick = setInterval(tickClock, 1000); }
+          tickClock();
+        },
+        function() {
+          if (serverMs === null) { startBrowserClock(); }
+          setTimeout(fetchTime, 30000);
+        }
+      );
     }
 
-    function tickClock() {
-      let now;
-      if (serverMs !== null) {
-        // Use server-anchored time (most accurate)
-        now = new Date(serverMs + (Date.now() - fetchedAt));
-      } else {
-        // Fallback: browser clock interpreted as PST/PDT via Intl
-        const pstString = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-        now = new Date(pstString);
-      }
-      const day  = DAYS[now.getDay()];
-      const mon  = MONTHS[now.getMonth()];
-      const dt   = now.getDate();
-      const yr   = now.getFullYear();
-      let   h    = now.getHours();
-      const m    = String(now.getMinutes()).padStart(2, '0');
-      const s    = String(now.getSeconds()).padStart(2, '0');
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-
-      document.getElementById('date-line').textContent = `${day}, ${mon} ${dt}, ${yr}`;
-      document.getElementById('t-h').textContent  = String(h);
-      document.getElementById('t-m').textContent  = m;
-      document.getElementById('t-s').textContent  = s;
-      document.getElementById('t-ap').textContent = ampm;
-    }
-
-    // Show browser time immediately, then sync from API
-    startBrowserClock();
+    startBrowserClock();   /* show browser time immediately while API loads */
     fetchTime();
-    // Re-sync every 10 minutes to prevent drift
-    setInterval(fetchTime, 10 * 60 * 1000);
+    setInterval(fetchTime, 600000); /* re-sync every 10 min */
 
 
-    /* ══════════════════════════════════════════
-       WEATHER  — Open-Meteo (free, no API key)
-       Sammamish, WA: 47.6162° N, 122.0356° W
-    ══════════════════════════════════════════ */
-    const WMO = {
-        0: { label: 'Clear Sky',             icon: '☀️' },
-        1: { label: 'Mainly Clear',          icon: '🌤️' },
-        2: { label: 'Partly Cloudy',         icon: '⛅' },
-        3: { label: 'Overcast',              icon: '☁️' },
-       45: { label: 'Foggy',                 icon: '🌫️' },
-       48: { label: 'Icy Fog',               icon: '🌫️' },
-       51: { label: 'Light Drizzle',         icon: '🌦️' },
-       53: { label: 'Moderate Drizzle',      icon: '🌦️' },
-       55: { label: 'Heavy Drizzle',         icon: '🌧️' },
-       56: { label: 'Light Freezing Drizzle',icon: '🌧️' },
-       57: { label: 'Heavy Freezing Drizzle',icon: '🌧️' },
-       61: { label: 'Light Rain',            icon: '🌧️' },
-       63: { label: 'Moderate Rain',         icon: '🌧️' },
-       65: { label: 'Heavy Rain',            icon: '🌧️' },
-       66: { label: 'Light Freezing Rain',   icon: '🌨️' },
-       67: { label: 'Heavy Freezing Rain',   icon: '🌨️' },
-       71: { label: 'Light Snow',            icon: '🌨️' },
-       73: { label: 'Moderate Snow',         icon: '❄️' },
-       75: { label: 'Heavy Snow',            icon: '❄️' },
-       77: { label: 'Snow Grains',           icon: '🌨️' },
-       80: { label: 'Light Rain Showers',    icon: '🌦️' },
-       81: { label: 'Rain Showers',          icon: '🌧️' },
-       82: { label: 'Violent Rain Showers',  icon: '⛈️' },
-       85: { label: 'Snow Showers',          icon: '🌨️' },
-       86: { label: 'Heavy Snow Showers',    icon: '❄️' },
-       95: { label: 'Thunderstorm',          icon: '⛈️' },
-       96: { label: 'Thunderstorm + Hail',   icon: '⛈️' },
-       99: { label: 'Thunderstorm + Hail',   icon: '⛈️' },
+    /* ════════════════════════════════════════════
+       WEATHER — Open-Meteo, free, no API key
+       Sammamish WA: 47.6162N, 122.0356W
+    ════════════════════════════════════════════ */
+    var WMO = {
+       0: { label: 'Clear Sky',              sym: 'Clear'       },
+       1: { label: 'Mainly Clear',           sym: 'Mostly Clear'},
+       2: { label: 'Partly Cloudy',          sym: 'Pt. Cloudy'  },
+       3: { label: 'Overcast',               sym: 'Overcast'    },
+      45: { label: 'Foggy',                  sym: 'Fog'         },
+      48: { label: 'Icy Fog',                sym: 'Icy Fog'     },
+      51: { label: 'Light Drizzle',          sym: 'Drizzle'     },
+      53: { label: 'Moderate Drizzle',       sym: 'Drizzle'     },
+      55: { label: 'Heavy Drizzle',          sym: 'Drizzle'     },
+      56: { label: 'Freezing Drizzle',       sym: 'Fr. Drizzle' },
+      57: { label: 'Freezing Drizzle',       sym: 'Fr. Drizzle' },
+      61: { label: 'Light Rain',             sym: 'Rain'        },
+      63: { label: 'Moderate Rain',          sym: 'Rain'        },
+      65: { label: 'Heavy Rain',             sym: 'Rain'        },
+      66: { label: 'Freezing Rain',          sym: 'Fr. Rain'    },
+      67: { label: 'Freezing Rain',          sym: 'Fr. Rain'    },
+      71: { label: 'Light Snow',             sym: 'Snow'        },
+      73: { label: 'Moderate Snow',          sym: 'Snow'        },
+      75: { label: 'Heavy Snow',             sym: 'Snow'        },
+      77: { label: 'Snow Grains',            sym: 'Snow'        },
+      80: { label: 'Light Showers',          sym: 'Showers'     },
+      81: { label: 'Rain Showers',           sym: 'Showers'     },
+      82: { label: 'Violent Showers',        sym: 'Showers'     },
+      85: { label: 'Snow Showers',           sym: 'Snow'        },
+      86: { label: 'Heavy Snow Showers',     sym: 'Snow'        },
+      95: { label: 'Thunderstorm',           sym: 'Storm'       },
+      96: { label: 'Thunderstorm + Hail',    sym: 'Storm'       },
+      99: { label: 'Thunderstorm + Hail',    sym: 'Storm'       }
     };
 
-    async function fetchWeather() {
-      const url =
+    /* Unicode weather symbols — visible on Samsung TV WebKit without emoji support issues */
+    var SYM_MAP = {
+      'Clear':        '\u2600',      /* ☀ */
+      'Mostly Clear': '\u26C5',      /* ⛅ */
+      'Pt. Cloudy':   '\u26C5',      /* ⛅ */
+      'Overcast':     '\u2601',      /* ☁ */
+      'Fog':          '\u2592',      /* ▒ fog block */
+      'Icy Fog':      '\u2592',
+      'Drizzle':      '\u2614',      /* ☔ */
+      'Fr. Drizzle':  '\u2744',      /* ❄ */
+      'Rain':         '\u2614',      /* ☔ */
+      'Fr. Rain':     '\u2744',
+      'Snow':         '\u2744',      /* ❄ */
+      'Showers':      '\u2614',
+      'Storm':        '\u26A1',      /* ⚡ */
+      'Unknown':      '\u2753'
+    };
+
+    function fetchWeather() {
+      xhrGet(
         'https://api.open-meteo.com/v1/forecast' +
         '?latitude=47.6162&longitude=-122.0356' +
         '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m' +
-        '&temperature_unit=celsius' +
-        '&wind_speed_unit=mph' +
-        '&timezone=America%2FLos_Angeles';
-      try {
-        const res  = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const cur  = data.current;
+        '&temperature_unit=celsius&wind_speed_unit=mph&timezone=America%2FLos_Angeles',
+        function(data) {
+          var cur    = data.current;
+          var tempC  = Math.round(cur.temperature_2m);
+          var tempF  = Math.round(tempC * 9 / 5 + 32);
+          var feelsC = Math.round(cur.apparent_temperature);
+          var feelsF = Math.round(feelsC * 9 / 5 + 32);
+          var code   = cur.weather_code;
+          var wmo    = WMO.hasOwnProperty(code) ? WMO[code] : { label: 'Unknown', sym: 'Unknown' };
+          var sym    = SYM_MAP.hasOwnProperty(wmo.sym) ? SYM_MAP[wmo.sym] : wmo.sym;
 
-        const tempC   = Math.round(cur.temperature_2m);
-        const tempF   = Math.round(tempC * 9 / 5 + 32);
-        const feelsC  = Math.round(cur.apparent_temperature);
-        const feelsF  = Math.round(feelsC * 9 / 5 + 32);
-        const code    = cur.weather_code;
-        const weather = WMO[code] ?? { label: 'Unknown', icon: '🌡️' };
-
-        document.getElementById('weather-icon').textContent = weather.icon;
-        document.getElementById('weather-desc').textContent = weather.label;
-        document.getElementById('temp-c').textContent       = `${tempC}°C`;
-        document.getElementById('temp-f').textContent       = `${tempF}°F`;
-        document.getElementById('humidity').textContent     = `${cur.relative_humidity_2m}%`;
-        document.getElementById('wind').textContent         = `${Math.round(cur.wind_speed_10m)} mph`;
-        document.getElementById('feels-like').textContent   = `${feelsC}°C / ${feelsF}°F`;
-
-        const updatedAt = new Date().toLocaleTimeString('en-US', {
-          timeZone: 'America/Los_Angeles',
-          hour: '2-digit', minute: '2-digit'
-        });
-        document.getElementById('status').textContent =
-          `Weather last updated · ${updatedAt} PST`;
-
-      } catch (err) {
-        console.warn('Weather API error:', err);
-        document.getElementById('weather-desc').textContent = 'Weather unavailable';
-        document.getElementById('status').textContent = 'Weather fetch failed — will retry';
-      }
+          setText('weather-icon', sym);
+          setText('weather-desc', wmo.label);
+          setText('temp-c', tempC + '\u00B0C');
+          setText('temp-f', tempF + '\u00B0F');
+          setText('humidity',   String(cur.relative_humidity_2m));
+          setText('wind',       String(Math.round(cur.wind_speed_10m)));
+          setText('feels-like', feelsC + '\u00B0C / ' + feelsF + '\u00B0F');
+          setText('status', 'Weather updated');
+        },
+        function() {
+          setText('weather-desc', 'Weather unavailable');
+          setText('status', 'Weather fetch failed - will retry');
+        }
+      );
     }
 
     fetchWeather();
-    setInterval(fetchWeather, 15 * 60 * 1000); // refresh every 15 min
+    setInterval(fetchWeather, 900000); /* 15 min */
   </script>
 </body>
 </html>
