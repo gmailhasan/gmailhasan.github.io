@@ -335,7 +335,10 @@
 
 
     /* ════════════════════════════════════════════
-       CLOCK — WorldTimeAPI, falls back to browser
+       CLOCK — timeapi.io (CORS-safe), falls back to browser
+       Response gives PST fields directly; stored as fake-UTC
+       so getUTC*() returns correct PST values regardless of
+       whatever timezone the TV itself is set to.
     ════════════════════════════════════════════ */
     var DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     var MONTHS = ['January','February','March','April','May','June',
@@ -346,28 +349,42 @@
     var clockTick = null;
 
     function tickClock() {
-      var now;
+      var h, mi, s, wd, mo, dt, yr;
       if (serverMs !== null) {
-        now = new Date(serverMs + ((new Date()).getTime() - fetchedAt));
+        /* serverMs stores PST time encoded as fake-UTC — use getUTC* */
+        var now = new Date(serverMs + ((new Date()).getTime() - fetchedAt));
+        h  = now.getUTCHours();
+        mi = now.getUTCMinutes();
+        s  = now.getUTCSeconds();
+        wd = now.getUTCDay();
+        mo = now.getUTCMonth();
+        dt = now.getUTCDate();
+        yr = now.getUTCFullYear();
       } else {
-        /* Intl timezone fallback — wrap in try/catch for very old engines */
+        /* Intl timezone fallback for browser clock */
+        var now2;
         try {
           var pst = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
           var d   = new Date(pst);
-          now = isNaN(d.getTime()) ? new Date() : d;
+          now2 = isNaN(d.getTime()) ? new Date() : d;
         } catch(e) {
-          now = new Date();
+          now2 = new Date();
         }
+        h  = now2.getHours();
+        mi = now2.getMinutes();
+        s  = now2.getSeconds();
+        wd = now2.getDay();
+        mo = now2.getMonth();
+        dt = now2.getDate();
+        yr = now2.getFullYear();
       }
 
-      var h    = now.getHours();
       var ampm = h >= 12 ? 'PM' : 'AM';
       h = h % 12 || 12;
-
-      setText('date-line', DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear());
+      setText('date-line', DAYS[wd] + ', ' + MONTHS[mo] + ' ' + dt + ', ' + yr);
       setText('t-h',  String(h));
-      setText('t-m',  pad2(now.getMinutes()));
-      setText('t-s',  pad2(now.getSeconds()));
+      setText('t-m',  pad2(mi));
+      setText('t-s',  pad2(s));
       setText('t-ap', ampm);
     }
 
@@ -378,10 +395,13 @@
     }
 
     function fetchTime() {
+      /* timeapi.io returns PST time fields directly — no CORS issues */
       xhrGet(
-        'https://worldtimeapi.org/api/timezone/America/Los_Angeles',
+        'https://timeapi.io/api/time/current/zone?timeZone=America%2FLos_Angeles',
         function(data) {
-          serverMs  = data.unixtime * 1000;
+          /* Encode PST time as fake-UTC ms so getUTC*() gives correct PST values */
+          serverMs  = Date.UTC(data.year, data.month - 1, data.day,
+                               data.hour, data.minute, data.seconds);
           fetchedAt = (new Date()).getTime();
           remCls(document.getElementById('time-line'), 'loading');
           if (!clockTick) { clockTick = setInterval(tickClock, 1000); }
