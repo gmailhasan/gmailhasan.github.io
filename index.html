@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -114,7 +114,31 @@
       font-size: 5.2rem;
       font-weight: 800;
       line-height: 1;
-      letter-spacing: -3px;
+      letter-spacing: 0;
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      gap: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Each digit group has a fixed width so changing digits never shift neighbours */
+    .t-seg {
+      display: inline-block;
+      text-align: center;
+      min-width: 2ch;
+    }
+    .t-seg.ampm {
+      min-width: 2ch;
+      font-size: 1.6rem;
+      font-weight: 600;
+      align-self: flex-end;
+      padding-bottom: 0.18em;
+      margin-left: 8px;
+      opacity: 0.85;
+    }
+    .t-colon {
+      padding: 0 2px;
+      opacity: 0.55;
     }
     .date-line {
       font-size: 1.15rem;
@@ -166,7 +190,8 @@
     /* ── Responsive ── */
     @media (max-width: 600px) {
       .widget { bottom: 28px; right: 24px; }
-      .time-line { font-size: 3.8rem; letter-spacing: -2px; }
+      .time-line { font-size: 3.8rem; }
+      .t-seg.ampm { font-size: 1.2rem; }
       .w-icon { font-size: 2rem; }
       .w-temp-main { font-size: 1.7rem; }
     }
@@ -203,7 +228,9 @@
     <div class="rule"></div>
 
     <!-- Clock -->
-    <div class="time-line loading" id="time-line">--:-- --</div>
+    <div class="time-line loading" id="time-line">
+      <span class="t-seg" id="t-h">--</span><span class="t-colon">:</span><span class="t-seg" id="t-m">--</span><span class="t-colon">:</span><span class="t-seg" id="t-s">--</span><span class="t-seg ampm" id="t-ap">--</span>
+    </div>
     <div class="date-line" id="date-line">—</div>
     <div class="location-line">📍 Sammamish, WA · Pacific Time</div>
   </div>
@@ -315,7 +342,10 @@
       h = h % 12 || 12;
 
       document.getElementById('date-line').textContent = `${day}, ${mon} ${dt}, ${yr}`;
-      document.getElementById('time-line').textContent = `${h}:${m}:${s} ${ampm}`;
+      document.getElementById('t-h').textContent  = String(h);
+      document.getElementById('t-m').textContent  = m;
+      document.getElementById('t-s').textContent  = s;
+      document.getElementById('t-ap').textContent = ampm;
     }
 
     // Show browser time immediately, then sync from API
